@@ -116,7 +116,9 @@ fun_check_data_passed ${str_testing_email_to_send_to}
 
 # Update the systems file to match the domain name and IPs.
 cat /etc/hosts | grep -v "$(hostname)" >/etc/hosts
-echo "$(ip a | grep "inet " | grep -v "127.\|172." | awk -F" " '{print $2}' | awk -F/ '{print $1}') $(hostname).$str_hp_domain_name $(hostname)" >>/etc/hosts
+echo "$(ip a | grep "inet " | grep -v "127.\|172." | awk -F" " '{print $2}' | awk -F/ '{print $1}') $(hostname).${str_hp_domain_name} $(hostname)" >>/etc/hosts
+echo "$(hostname).${str_hp_domain_name}" > /etc/hostname
+hostnamectl set-hostname "$(hostname).${str_hp_domain_name}"
 
 # Use OpenDNS Servers.
 echo "nameserver 208.67.222.222" > /etc/resolv.conf ; echo "nameserver 208.67.220.220" >> /etc/resolv.conf
@@ -128,9 +130,9 @@ apt-get install -y ${str_packages_to_install}
 apt-get -y autoremove
 
 # Make SSL Cert
-mkdir /root/SSL/$(hostname).${str_hp_domain_name} -p
-openssl req -nodes -x509 -newkey rsa:2048 -keyout /root/SSL/$(hostname).${str_hp_domain_name}.key -out /root/SSL/$(hostname).${str_hp_domain_name}.crt -days 365 -subj "/C=${str_cert_country_2letter_code}/ST=${str_cert_state}/L=${str_cert_state}/O=${str_hp_domain_name}/OU=IT Department/CN=$(hostname).${str_hp_domain_name}"
-cp /root/SSL/$(hostname).${str_hp_domain_name}.key /root/SSL/$(hostname).${str_hp_domain_name}.crt /etc/ssl/
+mkdir ${str_exim_config_dir}/ssl -p
+openssl req -nodes -x509 -newkey rsa:2048 -keyout ${str_exim_config_dir}/ssl/$(hostname).${str_hp_domain_name}.key -out ${str_exim_config_dir}/ssl/$(hostname).${str_hp_domain_name}.crt -days 365 -subj "/C=${str_cert_country_2letter_code}/ST=${str_cert_state}/L=${str_cert_state}/O=${str_hp_domain_name}/OU=IT Department/CN=$(hostname).${str_hp_domain_name}"
+
 
 # Check is Exim is already installed. If yes remove it.
 if [ ! -z "$(apt list | grep exim4)" ]; then
@@ -167,8 +169,8 @@ sed -i "s/primary_hostname = MAIN_HARDCODE_PRIMARY_HOSTNAME/primary_hostname = $
 sed -i "s/qualify_domain = ETC_MAILNAME/qualify_domain = $(hostname).${str_hp_domain_name}/g" "${str_exim_config_file_and_location}"
 sed -i "s/# need to be deliverable remotely./DCconfig_internet = ''/g" "${str_exim_config_file_and_location}"
 sed -i "s/tls_advertise_hosts = MAIN_TLS_ADVERTISE_HOSTS/tls_advertise_hosts = */g" "${str_exim_config_file_and_location}"
-sed -i "s/tls_certificate = MAIN_TLS_CERTIFICATE/tls_certificate = \/etc\/ssl\/$(hostname).${str_hp_domain_name}.crt/g" "${str_exim_config_file_and_location}"
-sed -i "s/tls_privatekey = MAIN_TLS_PRIVATEKEY/tls_privatekey = \/etc\/ssl\/$(hostname).${str_hp_domain_name}.key/g" "${str_exim_config_file_and_location}"
+sed -i "s/tls_certificate = MAIN_TLS_CERTIFICATE/tls_certificate = ${str_exim_config_dir}\/ssl\/$(hostname).${str_hp_domain_name}.crt/g" "${str_exim_config_file_and_location}"
+sed -i "s/tls_privatekey = MAIN_TLS_PRIVATEKEY/tls_privatekey = ${str_exim_config_dir}\/ssl\/$(hostname).${str_hp_domain_name}.key/g" "${str_exim_config_file_and_location}"
 
 # declare Config to catch exploit attempts
 str_exim_exploit_catch_config='
@@ -219,6 +221,13 @@ crontab -l | { cat; echo "*/15 * * * * ${str_scripts_current_working_dir}${str_h
 
 # Send test email to StickyExim Admin email.
 fun_send_test_email "${str_testing_email_to_send_to}" "${str_exim_main_log_file}"
+
+# Add a helpful alias commands to bash.bashrc config
+echo "alias clear-exim-mail-q='exim -bp | exiqgrep -i | xargs exim -Mrm'" >> /etc/bash.bashrc
+echo "alias ll='ls -lah --color=auto'" >> /etc/bash.bashrc
+
+# Remove Exim install packages
+rm -f ./*.deb
 
 echo ""
 echo "StickyHoney Install complete. Please check your email for confirmation email at ${str_testing_email_to_send_to}."
