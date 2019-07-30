@@ -66,6 +66,7 @@ Hello,
   Checking in from IP: $(hostname -I), FQDN: $(hostname -f)
 EOF
     # Confirm the email send successfully.
+    sleep 5
     exigrep "${str_who_to_send_email_to}" "${str_exim_main_log_file}"
 }
 
@@ -169,8 +170,8 @@ sed -i "s/primary_hostname = MAIN_HARDCODE_PRIMARY_HOSTNAME/primary_hostname = $
 sed -i "s/qualify_domain = ETC_MAILNAME/qualify_domain = $(hostname).${str_hp_domain_name}/g" "${str_exim_config_file_and_location}"
 sed -i "s/# need to be deliverable remotely./DCconfig_internet = ''/g" "${str_exim_config_file_and_location}"
 sed -i "s/tls_advertise_hosts = MAIN_TLS_ADVERTISE_HOSTS/tls_advertise_hosts = */g" "${str_exim_config_file_and_location}"
-sed -i "s/tls_certificate = MAIN_TLS_CERTIFICATE/tls_certificate = ${str_exim_config_dir}\/ssl\/$(hostname).${str_hp_domain_name}.crt/g" "${str_exim_config_file_and_location}"
-sed -i "s/tls_privatekey = MAIN_TLS_PRIVATEKEY/tls_privatekey = ${str_exim_config_dir}\/ssl\/$(hostname).${str_hp_domain_name}.key/g" "${str_exim_config_file_and_location}"
+sed -i "s/tls_certificate = MAIN_TLS_CERTIFICATE/tls_certificate = \/etc\/exim4\/ssl\/$(hostname).${str_hp_domain_name}.crt/g" "${str_exim_config_file_and_location}"
+sed -i "s/tls_privatekey = MAIN_TLS_PRIVATEKEY/tls_privatekey = \/etc\/exim4\/ssl\/$(hostname).${str_hp_domain_name}.key/g" "${str_exim_config_file_and_location}"
 
 # declare Config to catch exploit attempts
 str_exim_exploit_catch_config='

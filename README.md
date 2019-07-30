@@ -33,7 +33,7 @@ An Email HoneyPot
 ```shell
 apt update ; apt install -y git
 git clone https://github.com/Brets0150/StickyExim.git
-cd ./SticktyExim/
+cd ./StickyExim/
 chmod +x *.sh
 ./install_StickyExim.sh <DomainNameUsedForHoneyPot> <ExternalEmailAddressToSendTestEmailTo>
 ```
