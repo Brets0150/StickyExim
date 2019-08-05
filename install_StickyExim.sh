@@ -10,6 +10,7 @@
 ##
 ## Change Log:
 ##           - 6/24/19 -  Main code done. Version 1.0 done and working.
+##           - 8/5/19  -  Hostname update bug, fixed.
 ##
 ##
 ## START Declare Variables ##
@@ -18,6 +19,8 @@
 str_this_scripts_name="${0}"
 str_hp_domain_name="${1}"
 str_testing_email_to_send_to="${2}"
+str_starting_hostname="$(hostname)"
+str_full_domain_name="${str_starting_hostname}.${str_hp_domain_name}"
 str_scripts_current_working_dir="${PWD}/"
 str_honey_harvester_script_name="honey_harvester_exim_cve-2019-10149.sh"
 str_script_arguments="<DomainNameUsedForHoneyPot> <ExternalEmailAddressToSendTestEmailTo>"
@@ -116,10 +119,10 @@ fun_check_data_passed ${str_testing_email_to_send_to}
 #
 
 # Update the systems file to match the domain name and IPs.
-cat /etc/hosts | grep -v "$(hostname)" >/etc/hosts
-echo "$(ip a | grep "inet " | grep -v "127.\|172." | awk -F" " '{print $2}' | awk -F/ '{print $1}') $(hostname).${str_hp_domain_name} $(hostname)" >>/etc/hosts
-echo "$(hostname).${str_hp_domain_name}" > /etc/hostname
-hostnamectl set-hostname "$(hostname).${str_hp_domain_name}"
+cat /etc/hosts | grep -v "${str_starting_hostname}" >/etc/hosts
+echo "$(ip a | grep "inet " | grep -v "127.\|172." | awk -F" " '{print $2}' | awk -F/ '{print $1}') ${str_full_domain_name} ${str_starting_hostname}" >>/etc/hosts
+echo "${str_full_domain_name}" > /etc/hostname
+hostnamectl set-hostname "${str_full_domain_name}"
 
 # Use OpenDNS Servers.
 echo "nameserver 208.67.222.222" > /etc/resolv.conf ; echo "nameserver 208.67.220.220" >> /etc/resolv.conf
@@ -132,7 +135,7 @@ apt-get -y autoremove
 
 # Make SSL Cert
 mkdir ${str_exim_config_dir}/ssl -p
-openssl req -nodes -x509 -newkey rsa:2048 -keyout ${str_exim_config_dir}/ssl/$(hostname).${str_hp_domain_name}.key -out ${str_exim_config_dir}/ssl/$(hostname).${str_hp_domain_name}.crt -days 365 -subj "/C=${str_cert_country_2letter_code}/ST=${str_cert_state}/L=${str_cert_state}/O=${str_hp_domain_name}/OU=IT Department/CN=$(hostname).${str_hp_domain_name}"
+openssl req -nodes -x509 -newkey rsa:2048 -keyout ${str_exim_config_dir}/ssl/${str_full_domain_name}.key -out ${str_exim_config_dir}/ssl/${str_full_domain_name}.crt -days 365 -subj "/C=${str_cert_country_2letter_code}/ST=${str_cert_state}/L=${str_cert_state}/O=${str_hp_domain_name}/OU=IT Department/CN=${str_full_domain_name}"
 
 
 # Check is Exim is already installed. If yes remove it.
@@ -166,12 +169,12 @@ cat "${str_exim_config_dir}exim4.conf.template" > "${str_exim_config_file_and_lo
 # Add configs to Exim conf file
 
 sed -i "s/domainlist local_domains = MAIN_LOCAL_DOMAINS/domainlist local_domains = @ : ${str_hp_domain_name}/g" "${str_exim_config_file_and_location}"
-sed -i "s/primary_hostname = MAIN_HARDCODE_PRIMARY_HOSTNAME/primary_hostname = $(hostname).${str_hp_domain_name}/g" "${str_exim_config_file_and_location}"
-sed -i "s/qualify_domain = ETC_MAILNAME/qualify_domain = $(hostname).${str_hp_domain_name}/g" "${str_exim_config_file_and_location}"
+sed -i "s/primary_hostname = MAIN_HARDCODE_PRIMARY_HOSTNAME/primary_hostname = ${str_starting_hostname}.${str_hp_domain_name}/g" "${str_exim_config_file_and_location}"
+sed -i "s/qualify_domain = ETC_MAILNAME/qualify_domain = ${str_starting_hostname}.${str_hp_domain_name}/g" "${str_exim_config_file_and_location}"
 sed -i "s/# need to be deliverable remotely./DCconfig_internet = ''/g" "${str_exim_config_file_and_location}"
 sed -i "s/tls_advertise_hosts = MAIN_TLS_ADVERTISE_HOSTS/tls_advertise_hosts = */g" "${str_exim_config_file_and_location}"
-sed -i "s/tls_certificate = MAIN_TLS_CERTIFICATE/tls_certificate = \/etc\/exim4\/ssl\/$(hostname).${str_hp_domain_name}.crt/g" "${str_exim_config_file_and_location}"
-sed -i "s/tls_privatekey = MAIN_TLS_PRIVATEKEY/tls_privatekey = \/etc\/exim4\/ssl\/$(hostname).${str_hp_domain_name}.key/g" "${str_exim_config_file_and_location}"
+sed -i "s/tls_certificate = MAIN_TLS_CERTIFICATE/tls_certificate = \/etc\/exim4\/ssl\/${str_starting_hostname}.${str_hp_domain_name}.crt/g" "${str_exim_config_file_and_location}"
+sed -i "s/tls_privatekey = MAIN_TLS_PRIVATEKEY/tls_privatekey = \/etc\/exim4\/ssl\/${str_starting_hostname}.${str_hp_domain_name}.key/g" "${str_exim_config_file_and_location}"
 
 # declare Config to catch exploit attempts
 str_exim_exploit_catch_config='
