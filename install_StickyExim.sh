@@ -122,7 +122,6 @@ fun_check_data_passed ${str_testing_email_to_send_to}
 if [ ! -z "$(apt list | grep exim4)" ]; then
     rm -f ${str_scripts_current_working_dir}*.deb
     crontab -r
-    killall -s 9 exim4
     rm -rf ${str_exim_config_dir}
     apt-get remove --purge -y exim4*
 fi
@@ -223,7 +222,7 @@ chmod 0644 "${str_exim_config_file_and_location}"
 service exim4 stop ; service exim4 start  #  TO DO, confirm that thing works
 
 # Install cronjob to run the Honey_Harvester scripts every 15 minutes.
-crontab -l | { cat; echo "*/15 * * * * ${str_scripts_current_working_dir}${str_honey_harvester_script_name} > /dev/null";echo ""; } | crontab -
+crontab -l | { cat; echo "*/15 * * * * ${str_scripts_current_working_dir}${str_honey_harvester_script_name} >/dev/null";echo ""; } | crontab -
 
 # Send test email to StickyExim Admin email.
 fun_send_test_email "${str_testing_email_to_send_to}" "${str_exim_main_log_file}"
