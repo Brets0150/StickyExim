@@ -135,20 +135,24 @@ apt-get -y autoremove
 
 # Make SSL Cert
 mkdir ${str_exim_config_dir}/ssl -p
-openssl req -nodes -x509 -newkey rsa:2048 -keyout ${str_exim_config_dir}/ssl/${str_full_domain_name}.key -out ${str_exim_config_dir}/ssl/${str_full_domain_name}.crt -days 365 -subj "/C=${str_cert_country_2letter_code}/ST=${str_cert_state}/L=${str_cert_state}/O=${str_hp_domain_name}/OU=IT Department/CN=${str_full_domain_name}"
+openssl req -nodes -x509 -newkey rsa:2048 -keyout ${str_exim_config_dir}ssl/${str_full_domain_name}.key -out ${str_exim_config_dir}ssl/${str_full_domain_name}.crt -days 365 -subj "/C=${str_cert_country_2letter_code}/ST=${str_cert_state}/L=${str_cert_state}/O=${str_hp_domain_name}/OU=IT Department/CN=${str_full_domain_name}"
 
 
 # Check is Exim is already installed. If yes remove it.
 if [ ! -z "$(apt list | grep exim4)" ]; then
+    rm -f ${str_scripts_current_working_dir}*.deb
+    crontab -r
+    killall -s 9 exim4
+    rm -rf ${str_exim_config_dir}
     apt-get remove --purge -y exim4*
     apt-get -y autoremove
 fi
 
 # Download and install the Exim 4.89-2 Version that is vulnerable.
-wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4-config_4.89-2+deb9u4_all.deb -O ./exim-config.deb;
-wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4-base_4.89-2+deb9u4_amd64.deb -O ./exim-base.deb;
-wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4-daemon-heavy_4.89-2+deb9u4_amd64.deb -O ./exim-heavy.deb;
-wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4_4.89-2+deb9u4_all.deb -O ./exim.deb;
+wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4-config_4.89-2+deb9u5_all.deb -O ./exim-config.deb;
+wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4-base_4.89-2+deb9u5_amd64.deb -O ./exim-base.deb;
+wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4-daemon-heavy_4.89-2+deb9u5_amd64.deb -O ./exim-heavy.deb;
+wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4_4.89-2+deb9u5_all.deb -O ./exim.deb;
 
 # Install the downloaded packages
 dpkg --force-all -i ./exim*.deb
@@ -221,7 +225,7 @@ chmod 0644 "${str_exim_config_file_and_location}"
 service exim4 stop ; service exim4 start  #  TO DO, confirm that thing works
 
 # Install cronjob to run the Honey_Harvester scripts every 15 minutes.
-crontab -l | { cat; echo "*/15 * * * * ${str_scripts_current_working_dir}${str_honey_harvester_script_name}";echo ""; } | crontab -
+crontab -l | { cat; echo "*/15 * * * * ${str_scripts_current_working_dir}${str_honey_harvester_script_name} > /dev/null";echo ""; } | crontab -
 
 # Send test email to StickyExim Admin email.
 fun_send_test_email "${str_testing_email_to_send_to}" "${str_exim_main_log_file}"
@@ -231,7 +235,7 @@ echo "alias clear-exim-mail-q='exim -bp | exiqgrep -i | xargs exim -Mrm'" >> /et
 echo "alias ll='ls -lah --color=auto'" >> /etc/bash.bashrc
 
 # Remove Exim install packages
-rm -f ./*.deb
+rm -f ${str_scripts_current_working_dir}*.deb
 
 echo ""
 echo "StickyHoney Install complete. Please check your email for confirmation email at ${str_testing_email_to_send_to}."
