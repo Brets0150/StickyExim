@@ -118,6 +118,15 @@ fun_check_data_passed ${str_testing_email_to_send_to}
 ##
 #
 
+# Check is Exim is already installed. If yes remove it.
+if [ ! -z "$(apt list | grep exim4)" ]; then
+    rm -f ${str_scripts_current_working_dir}*.deb
+    crontab -r
+    killall -s 9 exim4
+    rm -rf ${str_exim_config_dir}
+    apt-get remove --purge -y exim4*
+fi
+
 # Update the systems file to match the domain name and IPs.
 cat /etc/hosts | grep -v "${str_starting_hostname}" >/etc/hosts
 echo "$(ip a | grep "inet " | grep -v "127.\|172." | awk -F" " '{print $2}' | awk -F/ '{print $1}') ${str_full_domain_name} ${str_starting_hostname}" >>/etc/hosts
@@ -136,17 +145,6 @@ apt-get -y autoremove
 # Make SSL Cert
 mkdir ${str_exim_config_dir}/ssl -p
 openssl req -nodes -x509 -newkey rsa:2048 -keyout ${str_exim_config_dir}ssl/${str_full_domain_name}.key -out ${str_exim_config_dir}ssl/${str_full_domain_name}.crt -days 365 -subj "/C=${str_cert_country_2letter_code}/ST=${str_cert_state}/L=${str_cert_state}/O=${str_hp_domain_name}/OU=IT Department/CN=${str_full_domain_name}"
-
-
-# Check is Exim is already installed. If yes remove it.
-if [ ! -z "$(apt list | grep exim4)" ]; then
-    rm -f ${str_scripts_current_working_dir}*.deb
-    crontab -r
-    killall -s 9 exim4
-    rm -rf ${str_exim_config_dir}
-    apt-get remove --purge -y exim4*
-    apt-get -y autoremove
-fi
 
 # Download and install the Exim 4.89-2 Version that is vulnerable.
 wget http://security-cdn.debian.org/debian-security/pool/updates/main/e/exim4/exim4-config_4.89-2+deb9u5_all.deb -O ./exim-config.deb;
